@@ -5,7 +5,7 @@ unit CliMenu;
 interface
 
 uses
-  SysUtils;
+  SysUtils, Classes;
 
 type
   TMenuAction = procedure;

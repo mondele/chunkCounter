@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="chunkCounter.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="30" Y="35"/>
+        <UsageCount Value="31"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="sourceCounter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="31"/>
+      </Unit>
+      <Unit>
+        <Filename Value="targetCounter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="6" Y="3"/>
+        <UsageCount Value="31"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="unit1.pas"/>
+        <ComponentName Value="Form1"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="19"/>
+        <UsageCount Value="19"/>
+        <LoadedDesigner Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="unit2.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="11"/>
+        <UsageCount Value="19"/>
+      </Unit>
+      <Unit>
+        <Filename Value="resourceProcessor.pas"/>
+        <UnitName Value="ResourceProcessor"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="38"/>
+        <CursorPos X="3" Y="6"/>
+        <UsageCount Value="15"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="7">
+      <Position>
+        <Filename Value="chunkCounter.lpr"/>
+        <Caret Line="13" Column="57"/>
+      </Position>
+      <Position>
+        <Filename Value="targetCounter.pas"/>
+        <Caret Line="3" Column="6"/>
+      </Position>
+      <Position>
+        <Filename Value="resourceProcessor.pas"/>
+        <Caret Line="6" Column="12"/>
+      </Position>
+      <Position>
+        <Filename Value="resourceProcessor.pas"/>
+        <Caret Line="41" Column="18" TopLine="18"/>
+      </Position>
+      <Position>
+        <Filename Value="resourceProcessor.pas"/>
+        <Caret Line="55" Column="12" TopLine="18"/>
+      </Position>
+      <Position>
+        <Filename Value="resourceProcessor.pas"/>
+        <Caret Line="6" Column="3"/>
+      </Position>
+      <Position>
+        <Filename Value="chunkCounter.lpr"/>
+        <Caret Line="34" Column="26"/>
+      </Position>
+      <Position>
+        <Filename Value="chunkCounter.lpr"/>
+        <Caret Line="37"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

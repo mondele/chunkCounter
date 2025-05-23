@@ -13,3 +13,10 @@ uses
 
 {$R *.res}
 
+interface
+
+implementation
+
+begin
+  
+end.
