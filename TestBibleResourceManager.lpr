@@ -3,59 +3,54 @@ program TestBibleResourceManager;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils, BibleResourceManager;
-
-const
-{$IFDEF mswindows}
-  sourceDir = 'C:\Path\To\library'; // adjust this path for Windows
-{$ENDIF}
-{$IFDEF unix}
-  {$IFDEF darwin}
-  sourceDir = '/Users/yourname/Library/Application Support/BTT-Writer/library';
-  {$ELSE}
-  sourceDir = '/home/yourname/.config/BTT-Writer/library';
-  {$ENDIF}
-{$ENDIF}
+  SysUtils, Generics.Collections, BibleResourceManager;
 
 var
-  Container: TLanguageContainer;
+  LanguageContainer: TLanguageContainer;
   Lang: TBibleInLanguage;
   Book: TBook;
   Chapter: TChapter;
   Chunk: TChunk;
-  i, j, k: Integer;
 begin
-  Container := TLanguageContainer.Create;
+  LanguageContainer := TLanguageContainer.Create;
   try
-    WriteLn('Loading data from: ', sourceDir);
-    Container.LoadFromRoot(sourceDir);
+    // Simulate directory name parsing: arb_2ch_avd
+    Lang := LanguageContainer.GetLanguage('arb');
+    Book := Lang.FindOrAddBook('2ch', 'avd');
+    Chapter := Book.FindOrAddChapter('01');
+    Chunk := Chapter.FindOrAddChunk('01');
+    Chunk.ExistsInTOC := True;
+    Chunk.ExistsOnDisk := True;
 
-    // Show structure for one language (e.g. Arabic)
-    Lang := Container.GetLanguage('arb');
-    if Assigned(Lang) then
+    Chapter := Book.FindOrAddChapter('01');
+    Chunk := Chapter.FindOrAddChunk('02');
+    Chunk.ExistsInTOC := True;
+    Chunk.ExistsOnDisk := False;
+
+    Chapter := Book.FindOrAddChapter('02');
+    Chunk := Chapter.FindOrAddChunk('01');
+    Chunk.ExistsInTOC := False;
+    Chunk.ExistsOnDisk := True;
+
+    // Output the data structure
+    for Lang in LanguageContainer.Languages do
     begin
       WriteLn('Language: ', Lang.LanguageCode);
-      for i := 0 to Lang.Books.Count - 1 do
+      for Book in Lang.Books do
       begin
-        Book := TBook(Lang.Books.Objects[i]);
-        WriteLn('  Book: ', Book.Name, ' [', Book.ResourceType, ']');
-        for j := 0 to Book.Chapters.Count - 1 do
+        WriteLn('  Book: ', Book.Name, ' (', Book.ResourceType, ')');
+        for Chapter in Book.Chapters do
         begin
-          Chapter := TChapter(Book.Chapters.Objects[j]);
-          WriteLn('    Chapter: ', Chapter.Id);
-          for k := 0 to Chapter.Chunks.Count - 1 do
-          begin
-            Chunk := TChunk(Chapter.Chunks.Objects[k]);
-            WriteLn('      Chunk: ', Chunk.Id,
-              ' (YAML: ', BoolToStr(Chunk.ExistsInYAML, True),
-              ', Disk: ', BoolToStr(Chunk.ExistsOnDisk, True), ')');
-          end;
+          WriteLn('    Chapter: ', Chapter.Name);
+          for Chunk in Chapter.Chunks do
+            WriteLn('      Chunk: ', Chunk.Name,
+                    ' [TOC=', BoolToStr(Chunk.ExistsInTOC, True),
+                    ', Disk=', BoolToStr(Chunk.ExistsOnDisk, True), ']');
         end;
       end;
-    end
-    else
-      WriteLn('Language not found.');
+    end;
   finally
-    Container.Free;
+    LanguageContainer.Free;
   end;
 end.
+
