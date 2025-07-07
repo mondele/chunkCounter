@@ -1,56 +1,76 @@
+// === File: TestBibleResourceManager.lpr ===
 program TestBibleResourceManager;
 
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils,
-  BibleResourceManager, Classes;
+  SysUtils, Classes, StrUtils,
+  BibleResourceManager;
 
 const
-  {$IFDEF mswindows}
-  BTTLibraryDir = 'AppData\Local\BTT-Writer\library\resource_containers\';
-  {$ENDIF}
-  {$IFDEF unix}
+{$IFDEF mswindows}
+  BTTLibraryDir = 'AppData\Local\BTT-Writer\library';
+{$ENDIF}
+{$IFDEF unix}
   {$IFDEF darwin}
-  BTTLibraryDir = 'Library/Application Support/BTT-Writer/library/resource_containers/';
+  BTTLibraryDir = 'Library/Application Support/BTT-Writer/library';
   {$ELSE}
-  BTTLibraryDir = '.config/BTT-Writer/library/resource_containers/';
+  BTTLibraryDir = '.config/BTT-Writer/library';
   {$ENDIF}
-  {$ENDIF}
-  defaultLangCode = 'arb';
+{$ENDIF}
+
+  DefaultLang1 = 'en';
+  DefaultLang2 = 'arb';
+  DefaultBook = '2ch';
+  DefaultResType = 'ulb';
+
+function GetParamValue(const Flag: string; const Default: string): string;
+var
+  i: Integer;
+begin
+  for i := 1 to ParamCount - 1 do
+  begin
+    if ParamStr(i) = Flag then
+    begin
+      Result := ParamStr(i + 1);
+      Exit;
+    end;
+  end;
+  Result := Default;
+end;
 
 var
+  SourceDir: string;
   Container: TLanguageContainer;
-  Output: string;
-  sourceDir: string;
-  LangCode: string;
-  I: Integer; // for loop index
-
+  Report: TStringList;
+  Lang1, Lang2, Book: string;
 begin
-  sourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
+  SourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
+  Lang1 := GetParamValue('-1', DefaultLang1);
+  Lang2 := GetParamValue('-2', DefaultLang2);
+  Book  := GetParamValue('-book', DefaultBook);
+
+  WriteLn('Comparing book: ', Book);
+  WriteLn('From language: ', Lang1);
+  WriteLn('To language:   ', Lang2);
+
   Container := TLanguageContainer.Create;
-  if ParamCount > 0 then
-    LangCode := ParamStr(1)
-  else
-    LangCode := defaultLangCode;
   try
-    Container.LoadFromDirectory(sourceDir);
-    // testing block
-    WriteLn('Using source directory: ', sourceDir);
-    WriteLn('Languages found: ', Container.LanguageCount);
-    for I := 0 to Container.LanguageCount - 1 do
-      WriteLn('Loaded language: ', Container.GetLanguageCode(I));
+    if not Container.LoadFromDirectory(SourceDir) then
+    begin
+      WriteLn('Failed to load resource directory at ', SourceDir);
+      Halt(1);
+    end;
 
-    Output := Container.GetStructure(LangCode);
-    if Output = '' then
-      WriteLn('No structure found for language code: ', LangCode)
-    else
-      WriteLn(Output);
-
-    // end of testing block
-    Output := Container.GetStructure(LangCode); // or another known language
-    WriteLn('Looking for Resources in ' + sourceDir + '.');
-    WriteLn(Output);
+    Report := Container.CompareBooks(Lang1, Book, DefaultResType, DefaultResType);
+    try
+      WriteLn;
+      WriteLn('--- Comparison Report ---');
+      WriteLn;
+      WriteLn(Report.Text);
+    finally
+      Report.Free;
+    end;
   finally
     Container.Free;
   end;
