@@ -3,54 +3,55 @@ program TestBibleResourceManager;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils, Generics.Collections, BibleResourceManager;
+  SysUtils,
+  BibleResourceManager, Classes;
+
+const
+  {$IFDEF mswindows}
+  BTTLibraryDir = 'AppData\Local\BTT-Writer\library\resource_containers\';
+  {$ENDIF}
+  {$IFDEF unix}
+  {$IFDEF darwin}
+  BTTLibraryDir = 'Library/Application Support/BTT-Writer/library/resource_containers/';
+  {$ELSE}
+  BTTLibraryDir = '.config/BTT-Writer/library/resource_containers/';
+  {$ENDIF}
+  {$ENDIF}
+  defaultLangCode = 'arb';
 
 var
-  LanguageContainer: TLanguageContainer;
-  Lang: TBibleInLanguage;
-  Book: TBook;
-  Chapter: TChapter;
-  Chunk: TChunk;
+  Container: TLanguageContainer;
+  Output: string;
+  sourceDir: string;
+  LangCode: string;
+  I: Integer; // for loop index
+
 begin
-  LanguageContainer := TLanguageContainer.Create;
+  sourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
+  Container := TLanguageContainer.Create;
+  if ParamCount > 0 then
+    LangCode := ParamStr(1)
+  else
+    LangCode := defaultLangCode;
   try
-    // Simulate directory name parsing: arb_2ch_avd
-    Lang := LanguageContainer.GetLanguage('arb');
-    Book := Lang.FindOrAddBook('2ch', 'avd');
-    Chapter := Book.FindOrAddChapter('01');
-    Chunk := Chapter.FindOrAddChunk('01');
-    Chunk.ExistsInTOC := True;
-    Chunk.ExistsOnDisk := True;
+    Container.LoadFromDirectory(sourceDir);
+    // testing block
+    WriteLn('Using source directory: ', sourceDir);
+    WriteLn('Languages found: ', Container.LanguageCount);
+    for I := 0 to Container.LanguageCount - 1 do
+      WriteLn('Loaded language: ', Container.GetLanguageCode(I));
 
-    Chapter := Book.FindOrAddChapter('01');
-    Chunk := Chapter.FindOrAddChunk('02');
-    Chunk.ExistsInTOC := True;
-    Chunk.ExistsOnDisk := False;
+    Output := Container.GetStructure(LangCode);
+    if Output = '' then
+      WriteLn('No structure found for language code: ', LangCode)
+    else
+      WriteLn(Output);
 
-    Chapter := Book.FindOrAddChapter('02');
-    Chunk := Chapter.FindOrAddChunk('01');
-    Chunk.ExistsInTOC := False;
-    Chunk.ExistsOnDisk := True;
-
-    // Output the data structure
-    for Lang in LanguageContainer.Languages do
-    begin
-      WriteLn('Language: ', Lang.LanguageCode);
-      for Book in Lang.Books do
-      begin
-        WriteLn('  Book: ', Book.Name, ' (', Book.ResourceType, ')');
-        for Chapter in Book.Chapters do
-        begin
-          WriteLn('    Chapter: ', Chapter.Name);
-          for Chunk in Chapter.Chunks do
-            WriteLn('      Chunk: ', Chunk.Name,
-                    ' [TOC=', BoolToStr(Chunk.ExistsInTOC, True),
-                    ', Disk=', BoolToStr(Chunk.ExistsOnDisk, True), ']');
-        end;
-      end;
-    end;
+    // end of testing block
+    Output := Container.GetStructure(LangCode); // or another known language
+    WriteLn('Looking for Resources in ' + sourceDir + '.');
+    WriteLn(Output);
   finally
-    LanguageContainer.Free;
+    Container.Free;
   end;
 end.
-
