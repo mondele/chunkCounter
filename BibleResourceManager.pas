@@ -1,40 +1,55 @@
-// === File: BibleResourceManager.pas ===
 unit BibleResourceManager;
 
 {$mode objfpc}{$H+}
 
 interface
-
 uses
-  SysUtils, Classes, Generics.Collections,
-  BibleBook, BibleChapter, BibleChunk;
+  Classes, SysUtils, FileUtil, fgl, BibleBook, BibleChapter, BibleChunk;
 
 type
+  TBookKey = record
+    BookCode: string;
+    ResourceType: string;
+  end;
+
   TLanguageContainer = class
   private
-    FLanguages: specialize TObjectList<TObjectList<TBook>>; // List of lists of books by language
+    FBooks: specialize TFPGMapObject<string, specialize TFPGMapObject<string, TBook>>;
+    function ParseResourceDirName(const DirName: string;
+      out LangCode, BookCode, ResType: string): Boolean;
   public
     constructor Create;
     destructor Destroy; override;
-    function LoadFromDirectory(const BaseDir: string): Boolean;
-    function FindBook(const LangCode, BookCode, ResType: string): TBook;
-    function CompareBooks(const LangCode, BookCode, ResTypeA, ResTypeB: string): TStringList;
+    var Verbose: Boolean;
+    function LoadFromDirectory(const BasePath: string): Boolean;
+    function GetBook(const LangCode, BookCode, ResType: string): TBook;
+    function CompareBooks(const Lang1, Res1, Lang2, Res2, Book: string): TStringList;
   end;
-
-function ParseResourceDirName(const DirName: string;
-  out LangCode, BookCode, ResType: string): Boolean;
 
 implementation
 
-uses
-  FileUtil, LazFileUtils, StrUtils;
+constructor TLanguageContainer.Create;
+begin
+  inherited Create;
+  FBooks := specialize TFPGMapObject<string, specialize TFPGMapObject<string, TBook>>.Create;
+end;
 
-function ParseResourceDirName(const DirName: string;
+destructor TLanguageContainer.Destroy;
+var
+  I: Integer;
+begin
+  for I := 0 to FBooks.Count - 1 do
+    FBooks.Data[I].Free;
+  FBooks.Free;
+  inherited Destroy;
+end;
+
+function TLanguageContainer.ParseResourceDirName(const DirName: string;
   out LangCode, BookCode, ResType: string): Boolean;
 var
   Parts: TStringArray;
 begin
-  Parts := SplitString(DirName, '_');
+  Parts := DirName.Split('_');
   Result := Length(Parts) = 3;
   if Result then
   begin
@@ -44,92 +59,74 @@ begin
   end;
 end;
 
-constructor TLanguageContainer.Create;
-begin
-  FLanguages := specialize TObjectList<TObjectList<TBook>>.Create(True);
-end;
-
-destructor TLanguageContainer.Destroy;
+function TLanguageContainer.LoadFromDirectory(const BasePath: string): Boolean;
 var
-  i: Integer;
-begin
-  for i := 0 to FLanguages.Count - 1 do
-    FLanguages[i].Free;
-  FLanguages.Free;
-  inherited Destroy;
-end;
-
-function TLanguageContainer.LoadFromDirectory(const BaseDir: string): Boolean;
-var
-  DirList: TStringList;
-  DirName, LangCode, BookCode, ResType: string;
-  i: Integer;
+  SR: TSearchRec;
+  FullPath, LangCode, BookCode, ResType: string;
   Book: TBook;
-  Chapter: TChapter;
-  Chunk: TChunk;
+  LangMap: specialize TFPGMapObject<string, TBook>;
+  AnyBooksLoaded: Boolean;
 begin
   Result := False;
-  if not DirectoryExists(BaseDir) then Exit;
-  DirList := FindAllDirectories(BaseDir, False);
-  try
-    for i := 0 to DirList.Count - 1 do
-    begin
-      DirName := ExtractFileName(DirList[i]);
-      if not ParseResourceDirName(DirName, LangCode, BookCode, ResType) then
-        Continue;
-      Book := TBook.Create(BookCode, ResType);
-      // Simulate loading TOC and disk structure:
-      Chapter := TChapter.Create('01');
-      Chapter.Chunks.Add(TChunk.Create('01', True));
-      Chapter.Chunks.Add(TChunk.Create('03', True));
-      Book.Chapters.Add(Chapter);
-      Chapter := TChapter.Create('02');
-      Chapter.Chunks.Add(TChunk.Create('01', True));
-      Chapter.Chunks.Add(TChunk.Create('04', True));
-      Book.Chapters.Add(Chapter);
+  AnyBooksLoaded := False;
 
-      // For this example, just keep books in their own list for language
-      FLanguages.Add(specialize TObjectList<TBook>.Create(True));
-      FLanguages[FLanguages.Count - 1].Add(Book);
-    end;
-    Result := True;
-  finally
-    DirList.Free;
-  end;
-end;
-
-function TLanguageContainer.FindBook(const LangCode, BookCode, ResType: string): TBook;
-var
-  i, j: Integer;
-  BookList: TObjectList<TBook>;
-  Book: TBook;
-begin
-  for i := 0 to FLanguages.Count - 1 do
+  if FindFirst(IncludeTrailingPathDelimiter(BasePath) + '*', faDirectory, SR) = 0 then
   begin
-    BookList := FLanguages[i];
-    for j := 0 to BookList.Count - 1 do
-    begin
-      Book := BookList[j];
-      if (Book.Code = BookCode) and (Book.ResourceType = ResType) then
-        Exit(Book);
-    end;
+    repeat
+      if (SR.Attr and faDirectory <> 0) and (SR.Name <> '.') and (SR.Name <> '..') then
+      begin
+        if ParseResourceDirName(SR.Name, LangCode, BookCode, ResType) then
+        begin
+          FullPath := IncludeTrailingPathDelimiter(BasePath) + SR.Name + DirectorySeparator + 'content';
+          Book := TBook.Create(BookCode, ResType);
+          Book.LoadFromDisk(FullPath);
+
+          if not FBooks.TryGetData(LangCode, LangMap) then
+          begin
+            LangMap := specialize TFPGMapObject<string, TBook>.Create;
+            FBooks.Add(LangCode, LangMap);
+          end;
+
+          LangMap.Add(BookCode + '_' + ResType, Book);
+          AnyBooksLoaded := True;
+          // Debug output:
+          if Verbose then
+            WriteLn(Format('Loaded book: lang=%s, book=%s, type=%s', [LangCode, BookCode, ResType]));
+        end;
+      end;
+    until FindNext(SR) <> 0;
+    FindClose(SR);
   end;
-  Result := nil;
+  Result := AnyBooksLoaded;
 end;
 
-function TLanguageContainer.CompareBooks(const LangCode, BookCode, ResTypeA, ResTypeB: string): TStringList;
+function TLanguageContainer.GetBook(const LangCode, BookCode, ResType: string): TBook;
+var
+  LangMap: specialize TFPGMapObject<string, TBook>;
+  Key: string;
+begin
+  Result := nil;
+  if FBooks.TryGetData(LangCode, LangMap) then
+  begin
+    Key := BookCode + '_' + ResType;
+    LangMap.TryGetData(Key, Result);
+  end;
+end;
+
+function TLanguageContainer.CompareBooks(const Lang1, Res1, Lang2, Res2, Book: string): TStringList;
 var
   BookA, BookB: TBook;
 begin
-  BookA := FindBook(LangCode, BookCode, ResTypeA);
-  BookB := FindBook(LangCode, BookCode, ResTypeB);
+  BookA := GetBook(Lang1, Book, Res1);
+  BookB := GetBook(Lang2, Book, Res2);
+
+  Result := TStringList.Create;
+
   if (BookA = nil) or (BookB = nil) then
-  begin
-    Result := TStringList.Create;
-    Result.Add('One or both books not found.');
-    Exit;
-  end;
-  Result := BookA.CompareWith(BookB);
+    Result.Add('One or both books not found.')
+  else
+    Result.AddStrings(BookA.CompareWith(BookB));
 end;
+
 
 end.

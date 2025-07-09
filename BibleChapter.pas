@@ -10,12 +10,16 @@ uses
 
 type
   TChapter = class
+  private
+    FID: string;
   public
     Name: string;
     Chunks: specialize TObjectList<TChunk>;
     constructor Create(const AName: string);
     destructor Destroy; override;
     function CompareChunks(Other: TChapter): TStringList;
+    property ID: string read FID;
+    procedure AddChunk(AChunk: TChunk);
   end;
 
 implementation
@@ -32,6 +36,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TChapter.AddChunk(AChunk: TChunk);
+begin
+  Chunks.Add(AChunk);
+end;
+
 function TChapter.CompareChunks(Other: TChapter): TStringList;
 var
   i, j: Integer;
@@ -41,6 +50,13 @@ var
 begin
   Result := TStringList.Create;
   Result.Add('  Chapter ' + Name + ':');
+
+  if Other = nil then
+  begin
+    Result.Add('    ✗ Target chapter missing');
+    Exit;
+  end;
+
   Seen := TStringList.Create;
   try
     for i := 0 to Chunks.Count - 1 do
@@ -50,7 +66,7 @@ begin
       for j := 0 to Other.Chunks.Count - 1 do
       begin
         ChunkB := Other.Chunks[j];
-        if ChunkA.IsEquivalentTo(ChunkB) then
+        if (ChunkA <> nil) and (ChunkB <> nil) and ChunkA.IsEquivalentTo(ChunkB) then
         begin
           FoundMatch := True;
           Seen.Add(ChunkB.Name);
@@ -67,7 +83,7 @@ begin
     for j := 0 to Other.Chunks.Count - 1 do
     begin
       ChunkB := Other.Chunks[j];
-      if Seen.IndexOf(ChunkB.Name) = -1 then
+      if (ChunkB <> nil) and (Seen.IndexOf(ChunkB.Name) = -1) then
         Result.Add('    ✗ ' + ChunkB.Name + ' (extra in target)');
     end;
   finally

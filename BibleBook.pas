@@ -1,4 +1,3 @@
-// === File: BibleBook.pas ===
 unit BibleBook;
 
 {$mode objfpc}{$H+}
@@ -6,74 +5,179 @@ unit BibleBook;
 interface
 
 uses
-  SysUtils, Classes, Generics.Collections, BibleChapter;
+  Classes, SysUtils, fgl, BibleChapter, BibleChunk, Generics.Collections;
 
 type
+  TChapterList = specialize TObjectList<TChapter>;
+
   TBook = class
+  private
+    FCode: string;
+    FResourceType: string;
+    FChapters: TChapterList;
   public
-    Code: string;
-    ResourceType: string;
-    Chapters: specialize TObjectList<TChapter>;
-    constructor Create(const ACode, AResourceType: string);
+    constructor Create(const ACode, AResType: string);
     destructor Destroy; override;
+
+    function GetCode: string;
+    function GetResourceType: string;
+    function GetChapter(const ID: string): TChapter;
+    procedure AddChapter(AChapter: TChapter);
+
     function CompareWith(Other: TBook): TStringList;
+    procedure LoadFromDisk(const ContentDir: string);
+
+    property Code: string read GetCode;
+    property ResourceType: string read GetResourceType;
+    property Chapters: TChapterList read FChapters;
   end;
 
 implementation
 
-constructor TBook.Create(const ACode, AResourceType: string);
+{ TBook }
+
+constructor TBook.Create(const ACode, AResType: string);
 begin
-  Code := ACode;
-  ResourceType := AResourceType;
-  Chapters := specialize TObjectList<TChapter>.Create(True);
+  inherited Create;
+  FCode := ACode;
+  FResourceType := AResType;
+  FChapters := specialize TObjectList<TChapter>.Create(True);
 end;
 
 destructor TBook.Destroy;
 begin
-  Chapters.Free;
+  FChapters.Free;
   inherited Destroy;
+end;
+
+function TBook.GetCode: string;
+begin
+  Result := FCode;
+end;
+
+function TBook.GetResourceType: string;
+begin
+  Result := FResourceType;
+end;
+
+function TBook.GetChapter(const ID: string): TChapter;
+var
+  I: Integer;
+begin
+  for I := 0 to FChapters.Count - 1 do
+    if FChapters[I].ID = ID then
+      Exit(FChapters[I]);
+  Result := nil;
+end;
+
+procedure TBook.AddChapter(AChapter: TChapter);
+begin
+  FChapters.Add(AChapter);
 end;
 
 function TBook.CompareWith(Other: TBook): TStringList;
 var
-  i, j: Integer;
-  ChapA, ChapB: TChapter;
-  Found: Boolean;
-  Seen: TStringList;
-  Report: TStringList;
+  I: Integer;
+  ChapterA, ChapterB: TChapter;
+  DiffLines: TStringList;
 begin
-  Report := TStringList.Create;
-  Report.Add(Format('Comparing book %s (%s) with %s (%s)',
-    [Code, ResourceType, Other.Code, Other.ResourceType]));
-  Seen := TStringList.Create;
-  try
-    for i := 0 to Chapters.Count - 1 do
+  Result := TStringList.Create;
+  if Other = nil then
+  begin
+    Result.Add('Other book is missing.');
+    Exit;
+  end;
+
+  for I := 0 to FChapters.Count - 1 do
+  begin
+    ChapterA := FChapters[I];
+    ChapterB := Other.GetChapter(ChapterA.ID);
+
+    if ChapterB = nil then
+      Result.Add('Chapter missing in other: ' + ChapterA.ID)
+    else
     begin
-      ChapA := Chapters[i];
-      Found := False;
-      for j := 0 to Other.Chapters.Count - 1 do
+      DiffLines := ChapterA.CompareChunk:(ChapterB);
+      if DiffLines.Count > 0 then
       begin
-        ChapB := Other.Chapters[j];
-        if ChapA.Name = ChapB.Name then
-        begin
-          Report.AddStrings(ChapA.CompareChunks(ChapB));
-          Seen.Add(ChapB.Name);
-          Found := True;
-          Break;
-        end;
+        Result.Add('Differences in chapter ' + ChapterA.ID + ':');
+        Result.AddStrings(DiffLines);
       end;
-      if not Found then
-        Report.Add('  Chapter ' + ChapA.Name + ': missing in target');
+      DiffLines.Free;
     end;
-    // Check for extra chapters in Other
-    for j := 0 to Other.Chapters.Count - 1 do
+  end;
+end;
+
+procedure TBook.LoadFromDisk(const ContentDir: string);
+var
+  TocPath: string;
+  TocLines: TStringList;
+  Line, ChapterID, ChunkID: string;
+  CurrentChapter: TChapter;
+  Chunk: TChunk;
+  I: Integer;
+
+  function IsChapterLine(const S: string): Boolean;
+  begin
+    Result := Trim(S).StartsWith('- chapter:');
+  end;
+
+  function ExtractChapterID(const S: string): string;
+  begin
+    Result := Trim(Copy(S, Pos(':', S) + 1, MaxInt)).Trim([' ', '''', '"']);
+  end;
+
+  function IsChunkListStart(const S: string): Boolean;
+  begin
+    Result := Trim(S) = 'chunks:';
+  end;
+
+  function IsChunkLine(const S: string): Boolean;
+  begin
+    Result := Trim(S).StartsWith('-');
+  end;
+
+  function ExtractChunkID(const S: string): string;
+  begin
+    Result := Trim(Copy(S, Pos('-', S) + 1, MaxInt)).Trim([' ', '''', '"']);
+  end;
+
+begin
+  TocPath := IncludeTrailingPathDelimiter(ContentDir) + 'toc.yml';
+  if not FileExists(TocPath) then Exit;
+
+  TocLines := TStringList.Create;
+  try
+    TocLines.LoadFromFile(TocPath);
+    CurrentChapter := nil;
+
+    for I := 0 to TocLines.Count - 1 do
     begin
-      if Seen.IndexOf(Other.Chapters[j].Name) = -1 then
-        Report.Add('  Chapter ' + Other.Chapters[j].Name + ': extra in target');
+      Line := TocLines[I];
+      if IsChapterLine(Line) then
+      begin
+        ChapterID := ExtractChapterID(Line);
+        CurrentChapter := TChapter.Create(ChapterID);
+        AddChapter(CurrentChapter);
+      end
+      else if IsChunkListStart(Line) then
+      begin
+        Continue;
+      end
+      else if Assigned(CurrentChapter) and IsChunkLine(Line) then
+      begin
+        ChunkID := ExtractChunkID(Line);
+        Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx'));
+
+        // Check if file exists
+{        Chunk.ExistsOnDisk := FileExists(
+          IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx');
+}
+        CurrentChapter.AddChunk(Chunk);
+      end;
     end;
-    Result := Report;
   finally
-    Seen.Free;
+    TocLines.Free;
   end;
 end;
 

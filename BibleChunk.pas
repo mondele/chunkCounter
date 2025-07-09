@@ -19,11 +19,14 @@ uses
 
 type
   TChunk = class
+  private
+    FID: string;
   public
     Name: string;
     ExistsOnDisk: Boolean;
     constructor Create(const AName: string; AExistsOnDisk: Boolean);
     function IsEquivalentTo(Other: TChunk): Boolean;
+    property ID: string read FID;
   end;
 
 implementation

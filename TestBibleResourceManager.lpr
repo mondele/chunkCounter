@@ -1,76 +1,80 @@
-// === File: TestBibleResourceManager.lpr ===
 program TestBibleResourceManager;
 
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils, Classes, StrUtils,
+  SysUtils,
+  StrUtils,
+  Classes,
   BibleResourceManager;
 
 const
-{$IFDEF mswindows}
-  BTTLibraryDir = 'AppData\Local\BTT-Writer\library';
-{$ENDIF}
-{$IFDEF unix}
-  {$IFDEF darwin}
-  BTTLibraryDir = 'Library/Application Support/BTT-Writer/library';
-  {$ELSE}
-  BTTLibraryDir = '.config/BTT-Writer/library';
+  {$IFDEF mswindows}
+  BTTLibraryDir = 'AppData\Local\BTT-Writer\library\resource_containers';
   {$ENDIF}
-{$ENDIF}
-
-  DefaultLang1 = 'en';
-  DefaultLang2 = 'arb';
-  DefaultBook = '2ch';
-  DefaultResType = 'ulb';
-
-function GetParamValue(const Flag: string; const Default: string): string;
-var
-  i: Integer;
-begin
-  for i := 1 to ParamCount - 1 do
-  begin
-    if ParamStr(i) = Flag then
-    begin
-      Result := ParamStr(i + 1);
-      Exit;
-    end;
-  end;
-  Result := Default;
-end;
+  {$IFDEF unix}
+  {$IFDEF darwin}
+  BTTLibraryDir = 'Library/Application Support/BTT-Writer/library/resource_containers';
+  {$ELSE}
+  BTTLibraryDir = '.config/BTT-Writer/library/resource_containers';
+  {$ENDIF}
+  {$ENDIF}
 
 var
-  SourceDir: string;
   Container: TLanguageContainer;
-  Report: TStringList;
-  Lang1, Lang2, Book: string;
+  Output: TStringList;
+  SourceDir, Lang1, Lang2, BookCode, ResType1, ResType2: string;
+  Verbose: boolean;
+  I: integer;
+
 begin
+  // Defaults
+  Lang1 := 'en';
+  Lang2 := 'arb';
+  BookCode := '2ch';
+  ResType1 := 'ulb';
+  ResType2 := 'ulb';
+  Verbose := False;
+
+  // Parse command-line arguments
+  for I := 1 to ParamCount do
+  begin
+    if ParamStr(I) = '-1' then
+      Lang1 := ParamStr(I + 1)
+    else if ParamStr(I) = '-2' then
+      Lang2 := ParamStr(I + 1)
+    else if ParamStr(I) = '-r1' then
+      ResType1 := ParamStr(I + 1)
+    else if ParamStr(I) = '-r2' then
+      ResType2 := ParamStr(I + 1)
+    else if ParamStr(I) = '-book' then
+      BookCode := ParamStr(I + 1)
+    else if ParamStr(I) = '-v' then
+      Verbose := True;
+  end;
+
   SourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
-  Lang1 := GetParamValue('-1', DefaultLang1);
-  Lang2 := GetParamValue('-2', DefaultLang2);
-  Book  := GetParamValue('-book', DefaultBook);
-
-  WriteLn('Comparing book: ', Book);
-  WriteLn('From language: ', Lang1);
-  WriteLn('To language:   ', Lang2);
-
   Container := TLanguageContainer.Create;
   try
     if not Container.LoadFromDirectory(SourceDir) then
     begin
-      WriteLn('Failed to load resource directory at ', SourceDir);
+      WriteLn('Failed to load resources from: ', SourceDir);
       Halt(1);
     end;
 
-    Report := Container.CompareBooks(Lang1, Book, DefaultResType, DefaultResType);
+    Output := Container.CompareBooks(Lang1, ResType1, Lang2, ResType2, BookCode);
     try
-      WriteLn;
-      WriteLn('--- Comparison Report ---');
-      WriteLn;
-      WriteLn(Report.Text);
+      WriteLn('Comparing ', Lang1, ' ', ResType1, ' and ', Lang2, ' ',
+        ResType2, ' for book ', BookCode);
+      WriteLn(Output.Text);
     finally
-      Report.Free;
+      if Assigned(Output) then
+      begin
+        WriteLn(Output.Text);
+        Output.Free;
+      end;
     end;
+
   finally
     Container.Free;
   end;
