@@ -54,7 +54,7 @@ begin
     if Assigned(Item.SubMenu) then
       Item.SubMenu.Free;
   end;
-  FItems.Free;
+  FreeAndNil(FItems);
   inherited Destroy;
 end;
 

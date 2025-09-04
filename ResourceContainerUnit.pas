@@ -67,7 +67,7 @@ end;
 
 destructor TContentFolder.Destroy;
 begin
-  FFiles.Free;
+  FreeAndNil(FFiles);
   inherited;
 end;
 
@@ -87,7 +87,7 @@ end;
 
 destructor TResourceContainer.Destroy;
 begin
-  FContentFolders.Free;
+  FreeAndNil(FContentFolders);
   inherited;
 end;
 
@@ -118,7 +118,7 @@ end;
 
 destructor TResourceContainerManager.Destroy;
 begin
-  FResourceContainers.Free;
+  FreeAndNil(FResourceContainers);
   inherited;
 end;
 

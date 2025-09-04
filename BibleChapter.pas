@@ -13,21 +13,19 @@ type
   private
     FID: string;
   public
-    Name: string;
-    Chunks: specialize TDictionary<string, TChunk>;
+    Chunks: specialize TObjectList<TChunk>;
     constructor Create(const AName: string);
     destructor Destroy; override;
     function CompareChunks(Other: TChapter): TStringList;
     property ID: string read FID;
-    procedure AddChunk(AChunkID: string; AChunk: TChunk);
+    procedure AddChunk(AChunk: TChunk);
   end;
 
 implementation
 
 constructor TChapter.Create(const AName: string);
 begin
-  Name := AName;
-  Chunks := specialize TDictionary<string, TChunk>.Create;
+  Chunks := specialize TObjectList<TChunk>.Create;
 end;
 
 destructor TChapter.Destroy;
@@ -36,22 +34,21 @@ begin
   inherited Destroy;
 end;
 
-procedure TChapter.AddChunk(AChunkID: string; AChunk: TChunk);
+procedure TChapter.AddChunk(AChunk: TChunk);
 begin
-  Chunks.Add(AChunkID, AChunk);
+  Chunks.Add(AChunk);
 end;
 
 function TChapter.CompareChunks(Other: TChapter): TStringList;
 var
-  i, j: Integer;
   ChunkA, ChunkB: TChunk;
-  Pair: specialize TPair<string, TChunk>;
+  chunkIndex: Integer;
   FoundMatch: Boolean;
   Seen: TStringList;
   ISaw: string;
 begin
   Result := TStringList.Create;
-  Result.Add('  Chapter ' + Name + ':');
+  Result.Add('  Chapter ' + ID + ':');
 
   if Other = nil then
   begin
@@ -59,17 +56,15 @@ begin
     Exit;
   end;
 
+  // Compare chunks by index
+
   Seen := TStringList.Create;
-  for Pair in Chunks do
-  begin
-    ChunkA := Pair.Value;
-    //ChunkB := Other.Chunks;
-    WriteLn('Key: ', Pair.Key);
-    WriteLn('Chunk Name: ', ChunkA.Name);
-    if Other.Chunks.ContainsKey(Pair.Key) then
-      WriteLn('The other chapter also contains this key.');
+  try
+    for Pair in Chunks do
+    begin
+      ChunkA := Pair.Value;
+      if Other.Chunks.TryGetValue(Pair.Key, ChunkB) then
       begin
-        Other.Chunks.TryGetValue(Pair.Key, ChunkB);
         FoundMatch := True;
         Seen.Add(Pair.Key);
 
@@ -79,41 +74,16 @@ begin
           Result.Add('    ! ' + ChunkA.Name + ' (OnDisk mismatch: ' +
             BoolToStr(ChunkA.ExistsOnDisk, True) + ' vs ' +
             BoolToStr(ChunkB.ExistsOnDisk, True) + ')');
-
-        Break;
-      if not FoundMatch then
+      end
+      else
         Result.Add('    ✗ ' + ChunkA.Name + ' (missing in target)');
-  end;
+    end;
 
-{    for i := 0 to Chunks.Count - 1 do
-    begin
-      ChunkA := Chunks[i];
-      FoundMatch := False;
-      for j := 0 to Other.Chunks.Count - 1 do
-      begin
-        ChunkB := Other.Chunks[j];
-        WriteLn('ChunkA is ', ChunkA.Name,'. ChunkB is ', ChunkB.Name);
-        if (ChunkA <> nil) and (ChunkB <> nil) and SameText(ChunkA.Name, ChunkB.Name) then
-        end;
-      end;
-
-    end;}
-
-    // Now look for extras in Other that weren't seen
     for Pair in Other.Chunks do
-    try
       if Seen.IndexOf(Pair.Key) = -1 then
-        Result.Add('    ✗ ' + Pair.Key + ' (extra in target)');
-
-    {for j := 0 to Other.Chunks.Count - 1 do
-    begin
-      ChunkB := Other.Chunks[j];
-      if Seen.IndexOf(ChunkB.Name) = -1 then
-        Result.Add('    ✗ ' + ChunkB.Name + ' (extra in target)');
-    end;}
-end;
-  finally
-    FreeAndNil(Seen);
+        Result.Add('    ✗ ' + Pair.Value.Name + ' (extra in target)');
+    finally
+      FreeAndNil(Seen);
   end;
-
+  end;
 end.

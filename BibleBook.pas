@@ -46,7 +46,7 @@ end;
 
 destructor TBook.Destroy;
 begin
-  FChapters.Free;
+  FreeAndNil(FChapters);
   inherited Destroy;
 end;
 
@@ -80,6 +80,7 @@ var
   I: Integer;
   ChapterA, ChapterB: TChapter;
   DiffLines: TStringList;
+
 begin
   Result := TStringList.Create;
   if Other = nil then
@@ -97,13 +98,14 @@ begin
       Result.Add('Chapter missing in other: ' + ChapterA.ID)
     else
     begin
-      DiffLines := ChapterA.CompareChunk:(ChapterB);
+      DiffLines := ChapterA.CompareChunks(ChapterB);
       if DiffLines.Count > 0 then
       begin
         Result.Add('Differences in chapter ' + ChapterA.ID + ':');
         Result.AddStrings(DiffLines);
       end;
-      DiffLines.Free;
+//      Result.Sort;
+      FreeAndNil(DiffLines);
     end;
   end;
 end;
@@ -119,7 +121,7 @@ var
 
   function IsChapterLine(const S: string): Boolean;
   begin
-    Result := Trim(S).StartsWith('- chapter:');
+    Result := Trim(S).StartsWith('chapter:');
   end;
 
   function ExtractChapterID(const S: string): string;
@@ -144,9 +146,14 @@ var
 
 begin
   TocPath := IncludeTrailingPathDelimiter(ContentDir) + 'toc.yml';
-  if not FileExists(TocPath) then Exit;
+  if not FileExists(TocPath) then
+    begin
+    WriteLn('Can’t find file ',TocPath);
+    Exit;
+    end;
 
   TocLines := TStringList.Create;
+  WriteLn('Just created TocLines object.');
   try
     TocLines.LoadFromFile(TocPath);
     CurrentChapter := nil;
@@ -157,27 +164,30 @@ begin
       if IsChapterLine(Line) then
       begin
         ChapterID := ExtractChapterID(Line);
+        WriteLn('Adding chapter ', ChapterID);
         CurrentChapter := TChapter.Create(ChapterID);
         AddChapter(CurrentChapter);
       end
       else if IsChunkListStart(Line) then
       begin
+        WriteLn('Starting chunk list');
         Continue;
       end
       else if Assigned(CurrentChapter) and IsChunkLine(Line) then
       begin
         ChunkID := ExtractChunkID(Line);
+        WriteLn('   Adding Chunk ', ChunkID);
         Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx'));
 
         // Check if file exists
 {        Chunk.ExistsOnDisk := FileExists(
           IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx');
 }
-        CurrentChapter.AddChunk(Chunk);
+        CurrentChapter.AddChunk(ChunkID, Chunk);
       end;
     end;
   finally
-    TocLines.Free;
+    FreeAndNil(TocLines);
   end;
 end;
 

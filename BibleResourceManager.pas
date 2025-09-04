@@ -35,12 +35,8 @@ begin
 end;
 
 destructor TLanguageContainer.Destroy;
-var
-  I: Integer;
 begin
-  for I := 0 to FBooks.Count - 1 do
-    FBooks.Data[I].Free;
-  FBooks.Free;
+  FreeAndNil(FBooks);
   inherited Destroy;
 end;
 
@@ -90,7 +86,7 @@ begin
           LangMap.Add(BookCode + '_' + ResType, Book);
           AnyBooksLoaded := True;
           // Debug output:
-          if Verbose then
+//          if Verbose then
             WriteLn(Format('Loaded book: lang=%s, book=%s, type=%s', [LangCode, BookCode, ResType]));
         end;
       end;

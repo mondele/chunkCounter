@@ -23,6 +23,7 @@ const
 var
   Container: TLanguageContainer;
   Output: TStringList;
+  Putout: string;
   SourceDir, Lang1, Lang2, BookCode, ResType1, ResType2: string;
   Verbose: boolean;
   I: integer;
@@ -35,6 +36,7 @@ begin
   ResType1 := 'ulb';
   ResType2 := 'ulb';
   Verbose := False;
+  Putout := '';
 
   // Parse command-line arguments
   for I := 1 to ParamCount do
@@ -55,7 +57,9 @@ begin
 
   SourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
   Container := TLanguageContainer.Create;
+
   try
+    begin
     if not Container.LoadFromDirectory(SourceDir) then
     begin
       WriteLn('Failed to load resources from: ', SourceDir);
@@ -63,19 +67,14 @@ begin
     end;
 
     Output := Container.CompareBooks(Lang1, ResType1, Lang2, ResType2, BookCode);
-    try
-      WriteLn('Comparing ', Lang1, ' ', ResType1, ' and ', Lang2, ' ',
-        ResType2, ' for book ', BookCode);
-      WriteLn(Output.Text);
-    finally
-      if Assigned(Output) then
-      begin
-        WriteLn(Output.Text);
-        Output.Free;
+    for Putout in Output do
+      WriteLn(Putout);
+      FreeAndNil(Putout);
       end;
-    end;
-
+    WriteLn('Comparing ', Lang1, ' ', ResType1, ' and ', Lang2, ' ', ResType2, ' for book ', BookCode);
+    WriteLn(Output.Text);
+    FreeAndNil(Output);
   finally
-    Container.Free;
+    FreeAndNil(Container);
   end;
 end.
