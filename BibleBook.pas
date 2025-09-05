@@ -145,6 +145,7 @@ var
   end;
 
 begin
+  WriteLn('Loading book ', FCode, ' of type ', FResourceType, ' from ', ContentDir);
   TocPath := IncludeTrailingPathDelimiter(ContentDir) + 'toc.yml';
   if not FileExists(TocPath) then
     begin
@@ -176,14 +177,12 @@ begin
       else if Assigned(CurrentChapter) and IsChunkLine(Line) then
       begin
         ChunkID := ExtractChunkID(Line);
-        WriteLn('   Adding Chunk ', ChunkID);
-        Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx'));
-
-        // Check if file exists
-{        Chunk.ExistsOnDisk := FileExists(
-          IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx');
-}
-        CurrentChapter.AddChunk(ChunkID, Chunk);
+        if ChunkID <> '' then
+        begin
+          WriteLn('   Adding Chunk ', ChunkID);
+          Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx'));
+          CurrentChapter.AddChunk(Chunk);
+        end;
       end;
     end;
   finally

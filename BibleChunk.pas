@@ -26,7 +26,6 @@ type
     FExistsOnDisk: Boolean;
     procedure SetExistsOnDisk(const AExistsOnDisk: boolean);
     procedure SetName(const AName: string);
-    procedure AddChunk(const AName: string);
   public
     constructor Create(const AName: string; AExistsOnDisk: Boolean);
     function IsEquivalentTo(Other: TChunk): Boolean;
