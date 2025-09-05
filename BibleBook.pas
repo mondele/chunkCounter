@@ -180,7 +180,7 @@ begin
         if ChunkID <> '' then
         begin
           WriteLn('   Adding Chunk ', ChunkID);
-          Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + '_' + ChunkID + '.usx'));
+          Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + PathDelim + ChunkID + '.usx'));
           CurrentChapter.AddChunk(Chunk);
         end;
       end;

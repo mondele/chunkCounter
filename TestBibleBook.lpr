@@ -15,7 +15,7 @@ begin
   try
     // Adjust these to point to two valid book content directories
     DirA := '/home/jdwood/.config/BTT-Writer/library/resource_containers/arb_gen_avd/content'; // e.g., contains toc.yml and USX files
-    DirB := '/home/jdwood/.config/BTT-Writer/library/resource_containers/arb_exo_nav/content';
+    DirB := '/home/jdwood/.config/BTT-Writer/library/resource_containers/arb_gen_nav/content';
 
     // Create and load BookA
     BookA := TBook.Create('gen', 'avd');

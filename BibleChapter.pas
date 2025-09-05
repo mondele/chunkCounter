@@ -77,9 +77,14 @@ Begin
                 Found := True;
                 If ChunkA.ExistsOnDisk <> ChunkB.ExistsOnDisk Then
                   Begin
-                    Result.Add('    ! ' + ChunkA.Name + ' (OnDisk mismatch: ' +
-                      BoolToStr(ChunkA.ExistsOnDisk, True) + ' vs ' +
-                      BoolToStr(ChunkB.ExistsOnDisk, True) + ')');
+                    If Not ChunkA.ExistsOnDisk Then
+                      Result.Add('    ✗ ' + ChunkA.Name +
+                                 ' (missing in source)')
+                    Else If Not ChunkB.ExistsOnDisk Then
+                           Result.Add('    ✗ ' + ChunkA.Name +
+                                      ' (missing in target)')
+                    Else
+                      Result.Add('    ! ' + ChunkA.Name + ' (OnDisk mismatch)');
                     HasDifferences := True;
                   End;
                 Break;
@@ -104,12 +109,12 @@ Begin
       End;
   Finally
     FreeAndNil(SeenNames);
-  End;
+End;
 
-  // Only add chapter header if there are differences
-  If HasDifferences Then
-    Result.Insert(0, '  Chapter ' + ID + ':')
-  Else
-    Result.Clear;
+// Only add chapter header if there are differences
+If HasDifferences Then
+  Result.Insert(0, '  Chapter ' + ID + ':')
+Else
+  Result.Clear;
 End;
 End.
