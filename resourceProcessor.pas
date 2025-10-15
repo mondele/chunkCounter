@@ -3,21 +3,20 @@ unit ResourceProcessor;
 interface
 
 uses
-  sysUtils;
+  Classes, sysUtils;
 
 type
   TResource = class
     language: string;
     book: string;
     chunks: TStringList;
-    procedure MyMethod;
+    procedure ProcessResourceContainers;
   end;
 
-procedure ProcessResourceContainers;
 
 implementation
 
-procedure ProcessResourceContainers;
+procedure TResource.ProcessResourceContainers;
 var
   LibraryPath, ResourceContainers, SubDir: string;
   SearchRec: TSearchRec;

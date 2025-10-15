@@ -4,7 +4,7 @@ unit BibleResourceManager;
 
 interface
 uses
-  Classes, SysUtils, FileUtil, fgl, BibleBook, BibleChapter, BibleChunk;
+  Classes, SysUtils, FileUtil, fgl, BibleBook, BibleChapter, BibleChunk, Globals;
 
 type
   TBookKey = record
@@ -20,7 +20,6 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    var Verbose: Boolean;
     function LoadFromDirectory(const BasePath: string): Boolean;
     function GetBook(const LangCode, BookCode, ResType: string): TBook;
     function CompareBooks(const Lang1, Res1, Lang2, Res2, Book: string): TStringList;
@@ -51,7 +50,7 @@ begin
   begin
     LangCode := Parts[0];
     BookCode := Parts[1];
-    ResType := Parts[2];
+    ResType := Parts[High(Parts)]; // High returns the last index
   end;
 end;
 
@@ -85,9 +84,7 @@ begin
 
           LangMap.Add(BookCode + '_' + ResType, Book);
           AnyBooksLoaded := True;
-          // Debug output:
-//          if Verbose then
-            WriteLn(Format('Loaded book: lang=%s, book=%s, type=%s', [LangCode, BookCode, ResType]));
+            if Verbose then WriteLn(Format('Loaded book: lang=%s, book=%s, type=%s', [LangCode, BookCode, ResType]));
         end;
       end;
     until FindNext(SR) <> 0;

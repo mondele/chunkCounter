@@ -5,7 +5,7 @@ unit BibleBook;
 interface
 
 uses
-  Classes, SysUtils, fgl, BibleChapter, BibleChunk, Generics.Collections;
+  Classes, SysUtils, fgl, BibleChapter, BibleChunk, Generics.Collections, Globals;
 
 type
   TChapterList = specialize TObjectList<TChapter>;
@@ -80,12 +80,15 @@ var
   I: Integer;
   ChapterA, ChapterB: TChapter;
   DiffLines: TStringList;
+  isDifferent: Boolean;
 
 begin
+  isDifferent := False;
   Result := TStringList.Create;
   if Other = nil then
   begin
     Result.Add('Other book is missing.');
+    isDifferent := True;
     Exit;
   end;
 
@@ -95,29 +98,35 @@ begin
     ChapterB := Other.GetChapter(ChapterA.ID);
 
     if ChapterB = nil then
+    begin
+      isDifferent := True;
       Result.Add('Chapter missing in other: ' + ChapterA.ID)
+    end
     else
     begin
       DiffLines := ChapterA.CompareChunks(ChapterB);
       if DiffLines.Count > 0 then
       begin
+        isDifferent := True;
         Result.Add('Differences in chapter ' + ChapterA.ID + ':');
         Result.AddStrings(DiffLines);
       end;
-//      Result.Sort;
       FreeAndNil(DiffLines);
     end;
   end;
+  if not isDifferent then
+    Result.Add('No differences found between books ' + FCode + ' (' + FResourceType + ') and ' + Other.FCode + ' (' + Other.FResourceType + ').');
 end;
 
 procedure TBook.LoadFromDisk(const ContentDir: string);
 var
   TocPath: string;
   TocLines: TStringList;
-  Line, ChapterID, ChunkID: string;
+  Line, ChapterID, ChunkID, ChunkExt : string;
   CurrentChapter: TChapter;
   Chunk: TChunk;
   I: Integer;
+
 
   function IsChapterLine(const S: string): Boolean;
   begin
@@ -145,7 +154,7 @@ var
   end;
 
 begin
-  WriteLn('Loading book ', FCode, ' of type ', FResourceType, ' from ', ContentDir);
+  if Verbose then WriteLn('Loading book ', FCode, ' of type ', FResourceType, ' from ', ContentDir);
   TocPath := IncludeTrailingPathDelimiter(ContentDir) + 'toc.yml';
   if not FileExists(TocPath) then
     begin
@@ -154,7 +163,7 @@ begin
     end;
 
   TocLines := TStringList.Create;
-  WriteLn('Just created TocLines object.');
+  if Verbose then WriteLn('Just created TocLines object.');
   try
     TocLines.LoadFromFile(TocPath);
     CurrentChapter := nil;
@@ -165,13 +174,13 @@ begin
       if IsChapterLine(Line) then
       begin
         ChapterID := ExtractChapterID(Line);
-        WriteLn('Adding chapter ', ChapterID);
+        if Verbose then WriteLn('Adding chapter ', ChapterID);
         CurrentChapter := TChapter.Create(ChapterID);
         AddChapter(CurrentChapter);
       end
       else if IsChunkListStart(Line) then
       begin
-        WriteLn('Starting chunk list');
+        if Verbose then WriteLn('Starting chunk list');
         Continue;
       end
       else if Assigned(CurrentChapter) and IsChunkLine(Line) then
@@ -179,8 +188,13 @@ begin
         ChunkID := ExtractChunkID(Line);
         if ChunkID <> '' then
         begin
-          WriteLn('   Adding Chunk ', ChunkID);
-          Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + PathDelim + ChunkID + '.usx'));
+          if Verbose then WriteLn('   Adding Chunk ', ChunkID);
+          if (Pos('content', ContentDir) > 0) then
+            ChunkExt := '.usx'
+          else
+            ChunkExt := '.txt';
+
+          Chunk := TChunk.Create(ChunkID, FileExists(IncludeTrailingPathDelimiter(ContentDir) + ChapterID + PathDelim + ChunkID + ChunkExt));
           CurrentChapter.AddChunk(Chunk);
         end;
       end;

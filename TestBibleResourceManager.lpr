@@ -6,7 +6,8 @@ uses
   SysUtils,
   StrUtils,
   Classes,
-  BibleResourceManager;
+  BibleResourceManager,
+  Globals;
 
 const
   {$IFDEF mswindows}
@@ -25,17 +26,15 @@ var
   Output: TStringList;
   Putout: string;
   SourceDir, Lang1, Lang2, BookCode, ResType1, ResType2: string;
-  Verbose: boolean;
   I: integer;
 
 begin
   // Defaults
-  Lang1 := 'en';
+  Lang1 := 'arb';
   Lang2 := 'arb';
-  BookCode := '2ch';
-  ResType1 := 'ulb';
-  ResType2 := 'ulb';
-  Verbose := False;
+  BookCode := 'gen';
+  ResType1 := 'nav';
+  ResType2 := 'avd';
   Putout := '';
 
   // Parse command-line arguments
@@ -52,7 +51,20 @@ begin
     else if ParamStr(I) = '-book' then
       BookCode := ParamStr(I + 1)
     else if ParamStr(I) = '-v' then
-      Verbose := True;
+      Verbose := True
+    else if ParamStr(I) = '-h' then
+    begin
+      WriteLn('TestBibleResourceManager: Compare Bible resources between two languages and/or resource types.');
+      WriteLn('Options:');
+      WriteLn('  -1 lang1        Language code for the first resource (default: en)');
+      WriteLn('  -r1 resType1    Resource type for the first resource (default: ulb)');
+      WriteLn('  -2 lang2        Language code for the second resource (default: arb)');
+      WriteLn('  -r2 resType2    Resource type for the second resource (default: ulb)');
+      WriteLn('  -book bookCode  Book code to compare (default: 2ch)');
+      WriteLn('  -v              Enable verbose output');
+      WriteLn('  -h              Show this help message');
+      Halt(0);
+    end;
   end;
 
   SourceDir := ExpandFileName(IncludeTrailingPathDelimiter(GetUserDir) + BTTLibraryDir);
@@ -69,9 +81,7 @@ begin
     Output := Container.CompareBooks(Lang1, ResType1, Lang2, ResType2, BookCode);
     for Putout in Output do
       WriteLn(Putout);
-      FreeAndNil(Putout);
       end;
-    WriteLn('Comparing ', Lang1, ' ', ResType1, ' and ', Lang2, ' ', ResType2, ' for book ', BookCode);
     WriteLn(Output.Text);
     FreeAndNil(Output);
   finally

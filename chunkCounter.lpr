@@ -10,29 +10,33 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, sourceCounter, targetCounter, resourceProcessor
-  { you can add units after this };
+  Forms,
+  sourceCounter,
+  targetCounter,
+  resourceProcessor,
+  chunkCounterHome,
+  mainform, unit1 { you can add units after this };
 
-{$R *.res}
+  {$R *.res}
 
 const
-{$IFDEF mswindows}
+  {$IFDEF mswindows}
   sourceDir = '';
-{$ENDIF}
-{$IFDEF unix}
+  {$ENDIF}
+  {$IFDEF unix}
   {$IFDEF darwin}
   sourceDir = '~/Library/Application Support/BTT-Writer/library';
   {$ELSE}
   sourceDir = '~/.config/BTT-Writer/library';
   {$ENDIF}
-{$ENDIF}
+  {$ENDIF}
 
 begin
-  RequireDerivedFormResource:=True;
-  Application.Scaled:=True;
+  RequireDerivedFormResource := True;
+  Application.Scaled := True;
   Application.Initialize;
- // Application.CreateForm(TForm1, Form1);
+  // Application.CreateForm(TForm1, Form1);
   ProcessResourceContainers();
+  Application.CreateForm(TmainWindow, mainWindow);
   Application.Run;
 end.
-
