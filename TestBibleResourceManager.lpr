@@ -82,7 +82,6 @@ begin
     for Putout in Output do
       WriteLn(Putout);
       end;
-    WriteLn(Output.Text);
     FreeAndNil(Output);
   finally
     FreeAndNil(Container);

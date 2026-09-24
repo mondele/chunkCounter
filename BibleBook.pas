@@ -26,6 +26,7 @@ type
 
     function CompareWith(Other: TBook): TStringList;
     procedure LoadFromDisk(const ContentDir: string);
+    procedure LoadFromTargetTranslation(const ProjectDir: string);
 
     property Code: string read GetCode;
     property ResourceType: string read GetResourceType;
@@ -201,6 +202,54 @@ begin
     end;
   finally
     FreeAndNil(TocLines);
+  end;
+end;
+
+procedure TBook.LoadFromTargetTranslation(const ProjectDir: string);
+var
+  ChapterSR, ChunkSR: TSearchRec;
+  ChapterID, ChunkID, ChapterPath: string;
+  CurrentChapter: TChapter;
+  Chunk: TChunk;
+begin
+  if Verbose then WriteLn('Loading target translation ', FCode, ' of type ', FResourceType, ' from ', ProjectDir);
+  if not DirectoryExists(ProjectDir) then
+  begin
+    WriteLn('Can’t find target translation directory ', ProjectDir);
+    Exit;
+  end;
+
+  if FindFirst(IncludeTrailingPathDelimiter(ProjectDir) + '*', faDirectory, ChapterSR) = 0 then
+  begin
+    try
+      repeat
+        ChapterID := ChapterSR.Name;
+        if (ChapterSR.Attr and faDirectory <> 0) and (ChapterID <> '.') and
+           (ChapterID <> '..') and (not ChapterID.StartsWith('.')) then
+        begin
+          ChapterPath := IncludeTrailingPathDelimiter(ProjectDir) + ChapterID;
+          if Verbose then WriteLn('Adding chapter ', ChapterID);
+          CurrentChapter := TChapter.Create(ChapterID);
+          AddChapter(CurrentChapter);
+
+          if FindFirst(IncludeTrailingPathDelimiter(ChapterPath) + '*.txt', faAnyFile, ChunkSR) = 0 then
+          begin
+            try
+              repeat
+                ChunkID := ChangeFileExt(ChunkSR.Name, '');
+                if Verbose then WriteLn('   Adding Chunk ', ChunkID);
+                Chunk := TChunk.Create(ChunkID, True);
+                CurrentChapter.AddChunk(Chunk);
+              until FindNext(ChunkSR) <> 0;
+            finally
+              FindClose(ChunkSR);
+            end;
+          end;
+        end;
+      until FindNext(ChapterSR) <> 0;
+    finally
+      FindClose(ChapterSR);
+    end;
   end;
 end;
 

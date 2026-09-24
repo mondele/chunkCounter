@@ -115,9 +115,12 @@ begin
 
   Result := TStringList.Create;
 
-  if (BookA = nil) or (BookB = nil) then
-    Result.Add('One or both books not found.')
-  else
+  if BookA = nil then
+    Result.Add(Format('Book not found: lang=%s, book=%s, type=%s', [Lang1, Book, Res1]));
+  if BookB = nil then
+    Result.Add(Format('Book not found: lang=%s, book=%s, type=%s', [Lang2, Book, Res2]));
+
+  if (BookA <> nil) and (BookB <> nil) then
     Result.AddStrings(BookA.CompareWith(BookB));
 end;
 
