@@ -28,7 +28,7 @@ Implementation
 constructor TChapter.Create(Const AName: String);
 Begin
   FID := AName;
-  Chunks := specialize TObjectList<TChunk>.Create;
+  Chunks := specialize TObjectList<TChunk>.Create(True);
 End;
 
 destructor TChapter.Destroy;
