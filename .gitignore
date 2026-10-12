@@ -1,0 +1,27 @@
+.vscode/GTEMP.pas
+.aider*
+
+# Free Pascal / Lazarus build output
+lib/
+*.o
+*.ppu
+*.compiled
+*.or
+link*.res
+*~
+backup/
+
+# Built executables (no extension on Linux)
+/chunkCounter
+/chunktool
+/GenerateSourceReport
+/TestBibleBook
+/TestBibleChapter
+/TestBibleChunk
+/TestBibleProject
+/TestBibleResourceManager
+/TestProjectVsResource
+
+# Generated output
+reports/
+debug_output.txt
